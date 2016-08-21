@@ -9,6 +9,13 @@ class Edge(object):
         self.node_from = node_from
         self.node_to = node_to
 
+class Graph(object):
+    def __init__(self, nodes=None, edges=None):
+        self.nodes = nodes or []
+        self.edges = edges or []
+        self.node_names = []
+        self._node_map = {}
+
     def set_node_names(self, names):
         self.node_names = list(names)
 
@@ -19,7 +26,6 @@ class Edge(object):
         return new_node
 
     def insert_edge(self, new_edge_val, node_from_val, node_to_val):
-        "insert a new edge, creating new nodes if necessary"
         nodes = {node_from_val: None, node_to_val: None}
         for node in self.nodes:
             if node.value in nodes:
@@ -28,108 +34,105 @@ class Edge(object):
                     break
         for node_val in nodes:
             nodes[node_val] = nodes[node_val] or self.insert_node(node_val)
-        node_from = nodes[node_from_val]
-        node_to = nodes[node_to_val]
-        new_edge = Edge(new_edge_val, node_from, node_to)
-        node_from.edges.append(new_edge)
-        node_to.edges.append(new_edge)
+        from_node = nodes[node_from_val]
+        to_node = nodes[node_to_val]
+        new_edge = Edge(new_edge_val, from_node, to_node)
         self.edges.append(new_edge)
+        from_node.edges.append(new_edge)
+        to_node)edges.append(new_edge)
 
     def get_edge_list(self):
-        out = [(e.value, e.node_from.value, e.node_to.value)
-                for e in self.edges]
-        return out
+        '''list of (Edge Value, From Node Value, To Node Value)'''
+        return [(edge.value, edge.node_from.value, edge.node_to.value)
+                for edge in self.edges]
 
     def get_edge_list_names(self):
-        '''
-        out: (Edge value, from_node_value, to_node_value) all edges
-        '''
-        out = [(edge.value,
+        '''edge value, from node name, to node name'''
+        return [(edge.value,
             self.node_names[edge.node_from.value],
             self.node_names[edge.node_to.value])
             for edge in self.edges]
-        return out
 
     def get_adjacency_list(self):
+        '''indixe of outerlist: from_node value
+        tuples like (to node value, edge value)'''
         max_index = self.find_max_index()
-        adjacency_list = [[] for _ in range(max_index)]
-        for edg in self.edges:
-            from_value, to_value = edg.node_from.value, edg.node_to.value
-            adjacency_list[from_value].append((to_value, edg.value))
+        adjacency_list = [[] for _ in range(max_index + 1)]
+        for edge in self.edges:
+            from_node_val, to_node_val = edge.node_from.value, edge.node_to.value
+            adjacency_list[from_node_val].append((to_node_val, edge.value))
         return [a or None for a in adjacency_list]
 
-    def get_adjacency_list(self):
-        max_index = self.find_max_index()
-        adjacency_list = [[] for _ in range(max_index)]
-        for edg in self.edges:
-            from_value, to_value = edg.node_from.value, edg.node_to.value
-
-
-    def get_adjacency_list_names(self):
+    def get_adjacency_list_name(self):
+        '''to node name, edge value'''
         adjacency_list = self.get_adjacency_list()
-        def convers_to_names(pair, graph=self):
-            node_number, value = pair
-            return (graph.node_names[node_number], value)
+        def convert_to_name(pair, graph=self):
+            node_number, edge_val = pair
+            return (graph.node_names[node_number], edge_val)
         def map_conversion(adjacency_list_for_node):
-            if adjacency_list_for_node is None:
+            adjacency_list_for_node is None:
                 return None
-            return map(convert_to_names, adjacency_list_for_node)
+            return map(conver_to_names, adjacency_list_for_node)
         return [map_conversion(adjacency_list_for_node)
-                for adjacency_list_for_node in adjacency_list]
-
-    def find_max_index(self):
-        if len(self.node_names) > 0:
-            return len(self.node_names)
-        max_index = -1
-        if len(self.nodes):
-            for node in self.nodes:
-                if node.value > max_index:
-                    max_index = node.value
-        return max_index
+            for adjacency_list_for_node in adjecency_list]
 
     def get_adjacency_matrix(self):
-        max_index = max([node.value for node in self.nodes])
-        adjacency_matrix = [[0]*max_index for _ in range(max_index)]
+        max_index = self.find_max_index()
+        adjacency_list = [[0] * max_index for _ in range(max_index)]
         for edge in self.edges:
-            edge_value = edge.value
-            to_node = edge.node_to
-            from_node = edge.node_from
-            adjacency_matrix[from_node][to_node] = edge_value
+            from_node_val, to_node_val = edge.node_from.value, edge.node_to.value
+            adjacency_list[from_node_val][to_node_val] = edge.value
         return adjacency_list
+    
+    def find_max_index(self):
+        return max([node.value for node in self.nodes])
 
     def find_node(self, node_number):
         return self._node_map.get(node_number)
 
-    def dfs_helper(self, start_node, visited=None):
+    def _clear_visited(self):
+        for node in self.nodes:
+            node.visited = False
+
+    def dfs_helper(self, start_node):
         ret_list = [start_node.value]
-        visited.add(start_node.value)
-        edge_out = [e for e in start_node.edges
-                    if e.node_to.value != start_node.value]
-        for edge in edge_out:
-            to_node = edge.node_to
-            if to_node.value not in visited:
-                ret_list.extend(dfs_helper(to_node, visited))
+        start_node.visited = True
+        edges_out = [e for e in start_node.edges
+                if e.node_to.value != start_node.value]
+        for edge in start_node.edges:
+            if not edge.to_node.visited:
+                ret_list.extend(self.dfs_helper(edge.to_node))
         return ret_list
 
+
     def dfs(self, start_node_num):
+        self._clear_visited()
         start_node = self.find_node(start_node_num)
         return self.dfs_helper(start_node)
 
+    def dfs_names(self, start_node_num):
+        return [self.node_names[num] for num in self.dfs(start_node_num)]
+
     def bfs(self, start_node_num):
-        node = self.find_node(start_node_num)
-        ret_list = [node.value]
+        node = Node(start_node_num)
+        self._clear_visited()
+        ret_list = [start_node_num]
         queue = [node]
-        nodes_out = [e.node_to for e in node.edges
-                    if e.node_to.value != node.value]
-        queue.extend(nodes_out)
-        for node in queue:
-            if node.value not in ret_list:
-                continue
+        def enqueue(node, q=queue):
+            node.visited = True
+            q.append(node)
+        def unvisited_outgoing_edge(node, edge):
+            return ((node.value != edge.node_to.value)
+                    and (not edge.node_to.visited))
+        while queue:
+            node = queue.pop(0)
             ret_list.append(node.value)
-            nodes_out = [e.node_to for e in node.edges
-                        if e.node_to.value != node.value]
-            queue.extentd(nodes_out)
+            for e in node.edges:
+                if unvisited_outgoing_edge(node, e):
+                    enqueue(e.node_to)
         return ret_list
 
+        
     def bfs_names(self, start_node_num):
-        return [self.node_names[num] for num in self.bfs(start_node_num)]
+            return [self.node_names[num] for num in self.bfs(start_node_num)]
+

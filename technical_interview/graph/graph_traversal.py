@@ -2,6 +2,7 @@ class Node(object):
     def __init__(self, value):
         self.value = value
         self.edges = []
+        self.visited = False
 
 class Edge(object):
     def __init__(self, value, node_from, node_to):
@@ -125,60 +126,71 @@ class Graph(object):
     def find_node(self, node_number):
         "Return the node with value node_number or None"
         return self._node_map.get(node_number)
+    
+    def _clear_visited(self):
+        for node in self.nodes:
+            node.visited = False
 
-    def dfs_helper(self, start_node, visited=None):
-        """TODO: Write the helper function for a recursive implementation
+    def dfs_helper(self, start_node):
+        """The helper function for a recursive implementation
         of Depth First Search iterating through a node's edges. The
         output should be a list of numbers corresponding to the
         values of the traversed nodes.
         ARGUMENTS: start_node is the starting Node
-        Because this is recursive, we pass in the set of visited node
-        values.
+        REQUIRES: self._clear_visited() to be called before
+        MODIFIES: the value of the visited property of nodes in self.nodes 
         RETURN: a list of the traversed node values (integers).
         """
         ret_list = [start_node.value]
-        visited.add(start_node.value)
-        edge_out = [e for e in start_node.edges
-                    if e.node_to.value != start_node.value]
-        for edge in edge_out:
-            if edge.node_to.value not in visited:
-                ret_list.extend(self.dfs_helper(edge.node_to, visited))
+        start_node.visited = True
+        edges_out = [e for e in start_node.edges
+                     if e.node_to.value != start_node.value]
+        for edge in edges_out:
+            if not edge.node_to.visited:
+                ret_list.extend(self.dfs_helper(edge.node_to))
         return ret_list
 
     def dfs(self, start_node_num):
         """Outputs a list of numbers corresponding to the traversed nodes
         in a Depth First Search.
         ARGUMENTS: start_node_num is the starting node number (integer)
+        MODIFIES: the value of the visited property of nodes in self.nodes
         RETURN: a list of the node values (integers)."""
+        self._clear_visited()
         start_node = self.find_node(start_node_num)
-        return self.dfs_helper(start_node, visited=set())
+        return self.dfs_helper(start_node)
 
     def dfs_names(self, start_node_num):
         """Return the results of dfs with numbers converted to names."""
         return [self.node_names[num] for num in self.dfs(start_node_num)]
 
     def bfs(self, start_node_num):
-        """TODO: Create an iterative implementation of Breadth First Search
+        """An iterative implementation of Breadth First Search
         iterating through a node's edges. The output should be a list of
         numbers corresponding to the traversed nodes.
         ARGUMENTS: start_node_num is the node number (integer)
+        MODIFIES: the value of the visited property of nodes in self.nodes
         RETURN: a list of the node values (integers)."""
         node = self.find_node(start_node_num)
-        ret_list = [node.value]
+        self._clear_visited()
+        ret_list = []
         # Your code here
         queue = [node]
-        nodes_out = [e.node_to for e in node.edges
-                    if e.node_to.value != node.value]
-        queue.extend(nodes_out)
-        for node in queue:
-            if node.value in ret_list:
-                continue
+        node.visited = True
+        def enqueue(n, q=queue):
+            n.visited = True
+            q.append(n)
+        def unvisited_outgoing_edge(n, e):
+            return ((e.node_from.value == n.value) and
+                    (not e.node_to.visited))
+        while queue:
+            node = queue.pop(0)
             ret_list.append(node.value)
-            nodes_out = [e.node_to for e in node.edges
-                        if e.node_to.value != node.value]
-            queue.extent(nodes_out)
+            for e in node.edges:
+                if unvisited_outgoing_edge(node, e):
+                    enqueue(e.node_to)
         return ret_list
-
+        
     def bfs_names(self, start_node_num):
         """Return the results of bfs with numbers converted to names."""
         return [self.node_names[num] for num in self.bfs(start_node_num)]
@@ -194,7 +206,7 @@ graph.set_node_names(('Mountain View',   # 0
                       'Shanghai',        # 3
                       'Berlin',          # 4
                       'Sao Paolo',       # 5
-                      'Bangalore'))      # 6
+                      'Bangalore'))      # 6 
 
 graph.insert_edge(51, 0, 1)     # MV <-> SF
 graph.insert_edge(51, 1, 0)     # SF <-> MV
@@ -237,6 +249,8 @@ pp.pprint(graph.dfs_names(2))
 
 print "\nBreadth First Search"
 pp.pprint(graph.bfs_names(2))
+# test error reporting
+# pp.pprint(['Sao Paolo', 'Mountain View', 'San Francisco', 'London', 'Shanghai', 'Berlin'])
 
 # Should print:
 # Breadth First Search
